@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>نظام الصيدلة السحابي - V15</title>
+    <title>نظام الصيدلة (تحكم يدوي) - V16</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
-        :root { --primary: #00695c; --bg: #e0f2f1; --accent: #00897b; }
+        :root { --primary: #00695c; --bg: #e0f2f1; --accent: #004d40; }
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: var(--bg); margin: 0; padding: 5px; }
         .container { max-width: 800px; margin: 0 auto; background: white; padding: 15px; border-radius: 10px; min-height: 90vh; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
         
@@ -23,13 +23,18 @@
         input:focus, select:focus { border-color: var(--primary); outline: none; background: white; }
         select:disabled { background: #eee; color: #aaa; }
 
-        button { width: 100%; padding: 14px; border: none; border-radius: 8px; font-weight: bold; color: white; cursor: pointer; margin-top: 8px; font-size: 16px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-        .btn-import { background-color: var(--primary); }
+        button { width: 100%; padding: 14px; border: none; border-radius: 8px; font-weight: bold; color: white; cursor: pointer; margin-top: 8px; font-size: 16px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); transition: 0.2s; }
+        button:active { transform: scale(0.98); }
+        
+        .btn-cloud { background-color: #0277bd; } /* زر السحابة */
+        .btn-file { background-color: #546e7a; } /* زر الملف المحلي */
         .btn-save { background-color: #2e7d32; }
+        .btn-report { background-color: #7b1fa2; }
         .btn-backup { background-color: #f57c00; }
         .btn-reset { background-color: #c62828; margin-top: 25px; font-size: 14px; opacity: 0.8; }
         
         .debug-console { background: #263238; color: #80cbc4; padding: 12px; height: 100px; overflow-y: auto; font-size: 12px; margin-top: 20px; direction: ltr; text-align: left; border-radius: 6px; font-family: monospace; }
+        
         .balance-box { padding: 20px; background: #e8f5e9; border: 1px solid #c8e6c9; text-align: center; display: none; border-radius: 8px; margin-bottom: 15px; }
         .balance-num { font-size: 2em; font-weight: bold; color: #2e7d32; display: block; }
 
@@ -41,8 +46,8 @@
         th, td { padding: 12px; border: 1px solid #eee; text-align: center; }
         th { background: var(--primary); color: white; }
         tr:nth-child(even) { background-color: #f9f9f9; }
-        
-        .loader { border: 4px solid #f3f3f3; border-top: 4px solid var(--primary); border-radius: 50%; width: 20px; height: 20px; animation: spin 1s linear infinite; display:inline-block; vertical-align:middle; margin-right:10px;}
+
+        .loader { border: 4px solid #f3f3f3; border-top: 4px solid white; border-radius: 50%; width: 20px; height: 20px; animation: spin 1s linear infinite; display:inline-block; vertical-align:middle; margin-right:10px;}
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
     </style>
@@ -50,7 +55,7 @@
 <body>
 
 <div class="container">
-    <h3 style="text-align:center; margin:10px 0 20px 0; color:var(--primary)">☁️ نظام المخزن السحابي</h3>
+    <h3 style="text-align:center; margin:10px 0 20px 0; color:var(--primary)">📦 نظام إدارة المخزن (التحكم اليدوي)</h3>
 
     <div class="nav-tabs">
         <div id="tab-import" class="nav-item active" onclick="switchTab('import')">1. البيانات</div>
@@ -59,27 +64,30 @@
     </div>
 
     <div id="import" class="section active">
-        <div style="background:#e0f2f1; padding:20px; border-radius:10px; text-align:center; border: 1px dashed var(--primary);">
-            <h4 style="margin-top:0; color:var(--primary)">حالة الاتصال بالمستودع</h4>
-            
-            <div id="autoLoadStatus" style="margin-bottom:15px; font-weight:bold; color:#555;">
-                جاري محاولة جلب ملف الإكسل من GitHub...
-            </div>
-
-            <button class="btn-import" onclick="fetchExcelFromGitHub()">🔄 إعادة المحاولة يدوياً</button>
-            
-            <hr style="margin:20px 0; border-color:#b2dfdb;">
-            
-            <p style="font-size:0.9rem;">أو يمكنك رفع ملف يدوياً (Excel / Backup):</p>
-            <input type="file" id="fileInput" accept=".xlsx, .xls, .csv, .json" style="display:block; margin:0 auto 10px auto;">
-            <button class="btn-save" onclick="processManualFile()">📂 معالجة الملف اليدوي</button>
+        
+        <div style="background:#e1f5fe; padding:20px; border-radius:10px; text-align:center; border: 1px dashed #0277bd; margin-bottom: 20px;">
+            <h4 style="margin-top:0; color:#0277bd;">☁️ الاتصال بـ GitHub</h4>
+            <p style="color:#555; font-size:0.9rem;">اضغط هنا لسحب أحدث نسخة من ملف Excel (data2026.xlsx) من المستودع.</p>
+            <button class="btn-cloud" onclick="fetchExcelFromGitHub()">🔄 تحديث البيانات من السحابة</button>
+            <div id="cloudStatus" style="margin-top:10px; font-size:0.85rem; color:#0277bd; display:none;"></div>
         </div>
 
-        <div class="debug-console" id="logsContent">> System Initialization...</div>
-        <button class="btn-reset" onclick="clearSystem()">⚠️ تصفير النظام بالكامل</button>
+        <div style="background:#eceff1; padding:20px; border-radius:10px; text-align:center; border: 1px dashed #546e7a;">
+            <h4 style="margin-top:0; color:#455a64;">📂 ملف محلي (Excel / Backup)</h4>
+            <p style="color:#555; font-size:0.9rem;">لرفع ملف Excel يدوياً أو استرجاع نسخة احتياطية.</p>
+            <input type="file" id="fileInput" accept=".xlsx, .xls, .csv, .json" style="display:block; margin:0 auto 10px auto;">
+            <button class="btn-file" onclick="processManualFile()">🚀 معالجة الملف المحلي</button>
+        </div>
+
+        <div class="debug-console" id="logsContent">> System Initialized. Waiting for user action...</div>
+        <button class="btn-reset" onclick="clearSystem()">⚠️ تصفير النظام (حذف الكل)</button>
     </div>
 
     <div id="dispense" class="section">
+        <div style="background:#fffde7; padding:10px; border-radius:5px; margin-bottom:15px; text-align:center; border:1px solid #fff9c4; color:#f57f17;">
+            💡 <b>نظام الفلترة:</b> اختر المادة أولاً لتظهر لك المؤسسات المستحقة.
+        </div>
+
         <div class="form-group">
             <label>1. اسم المادة (بحث سريع):</label>
             <input type="text" id="dispenseSearch" onkeyup="handleSearch(this.value, 'dispense')" placeholder="اكتب 3 أحرف..." autocomplete="off">
@@ -88,9 +96,9 @@
         </div>
 
         <div class="form-group">
-            <label>2. المؤسسة (مفلترة حسب الرصيد):</label>
+            <label>2. المؤسسة:</label>
             <select id="dispenseInst" onchange="checkDispenseBal()" disabled>
-                <option value="">-- اختر المادة --</option>
+                <option value="">-- اختر المادة أولاً --</option>
             </select>
         </div>
 
@@ -99,7 +107,7 @@
         </div>
 
         <div class="form-group">
-            <label>3. الكمية:</label>
+            <label>3. الكمية المصروفة:</label>
             <input type="number" id="qtyInput" placeholder="العدد">
         </div>
         <button class="btn-save" onclick="doDispense()">✅ تثبيت الصرف</button>
@@ -108,17 +116,18 @@
     <div id="report" class="section">
         <div style="background: #f3e5f5; padding: 20px; border-radius: 10px;">
             <div class="form-group">
-                <input type="text" id="reportSearch" onkeyup="handleSearch(this.value, 'report')" placeholder="ابحث عن دواء..." autocomplete="off">
+                <label style="color:#7b1fa2">بحث عن دواء:</label>
+                <input type="text" id="reportSearch" onkeyup="handleSearch(this.value, 'report')" placeholder="اسم الدواء..." autocomplete="off">
                 <div class="suggestions-list" id="reportList"></div>
                 <input type="hidden" id="reportItemHidden">
             </div>
-            <button class="btn-import" style="background:#7b1fa2" onclick="generateReport()">عرض الجدول</button>
+            <button class="btn-report" onclick="generateReport()">عرض جدول التوزيع</button>
         </div>
         
         <div style="overflow-x:auto; margin-top:10px;">
             <table id="reportTable">
                 <thead><tr><th>المؤسسة</th><th>المادة</th><th>الاحتياج</th><th>المصروف</th><th>المتبقي</th></tr></thead>
-                <tbody id="reportBody"><tr><td colspan="5" style="padding:20px;">النتائج هنا</td></tr></tbody>
+                <tbody id="reportBody"><tr><td colspan="5" style="padding:20px;">النتائج ستظهر هنا</td></tr></tbody>
             </table>
         </div>
         <hr>
@@ -128,12 +137,9 @@
 
 <script>
     // ============================================================
-    // ⚙️ إعدادات الرابط السحابي (ضع رابطك هنا)
-    // ============================================================
-    
-    // مثال: "https://raw.githubusercontent.com/USERNAME/REPO/main/data2026.xlsx"
-    const EXCEL_URL = "https://raw.githubusercontent.com/kingkopra00/calc-Medicine-/main/data2026.xlsx"; 
-    
+    // 🔗 رابط ملف الإكسل (RAW LINK)
+    // *تأكد من صحة الرابط هنا*
+    const EXCEL_URL = "https://raw.githubusercontent.com/kingkopra00/calc-Medicine-/main/data2026.xlsx";
     // ============================================================
 
     function log(msg) {
@@ -146,14 +152,11 @@
     let uniqueItems = [];
 
     window.onload = function() {
-        log("App Started.");
-        loadDB(); // محاولة تحميل البيانات المحفوظة في الهاتف
-        
-        // إذا لم تكن هناك بيانات، حاول سحب الإكسل من النت
-        if(db.length === 0) {
-            fetchExcelFromGitHub();
+        loadDB(); // فقط تحميل المحلي، لا يوجد سحب تلقائي
+        if(db.length > 0) {
+            log(`Data loaded from memory: ${db.length} records.`);
         } else {
-            document.getElementById('autoLoadStatus').innerHTML = `✅ البيانات جاهزة (${db.length} سجل).`;
+            log("Memory empty. Please Import Data.");
         }
     };
 
@@ -165,65 +168,70 @@
         if(btn) btn.classList.add('active');
     }
 
-    // --- ☁️ AUTO FETCH FROM GITHUB ---
+    // --- ☁️ CLOUD SYNC (Manual Trigger) ---
     async function fetchExcelFromGitHub() {
-        const statusDiv = document.getElementById('autoLoadStatus');
-        statusDiv.innerHTML = '<span class="loader"></span> جاري الاتصال بـ GitHub...';
-        log(`Connecting to: ${EXCEL_URL}`);
+        const statusDiv = document.getElementById('cloudStatus');
+        statusDiv.style.display = 'block';
+        statusDiv.innerHTML = '<span class="loader"></span> جاري الاتصال...';
+        log(`Fetching from: ${EXCEL_URL}`);
 
         try {
             const response = await fetch(EXCEL_URL);
             if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
             
             const arrayBuffer = await response.arrayBuffer();
-            log("File downloaded. Parsing...");
+            log("File downloaded. Processing...");
             
             const workbook = XLSX.read(arrayBuffer, {type: 'array'});
             processWorkbook(workbook);
             
-            statusDiv.innerHTML = `✅ تم تحديث البيانات من السحابة (${db.length} سجل).`;
-            alert("تم سحب أحدث نسخة من ملف الإكسل من GitHub بنجاح!");
+            statusDiv.innerHTML = `✅ تم التحديث بنجاح! (${db.length} سجل).`;
+            alert("تم تحديث البيانات من GitHub بنجاح!");
             switchTab('dispense');
 
         } catch (err) {
             log(`Fetch Error: ${err.message}`);
-            statusDiv.innerHTML = `❌ فشل الاتصال: ${err.message}. <br>يرجى استخدام الرفع اليدوي.`;
+            statusDiv.innerHTML = `❌ فشل: ${err.message}`;
+            alert("فشل الاتصال بالرابط. تأكد من الإنترنت أو صحة الرابط في الكود.");
         }
     }
 
-    // --- 📂 MANUAL FILE UPLOAD ---
+    // --- 📂 MANUAL FILE ---
     function processManualFile() {
         const f = document.getElementById('fileInput').files[0];
         if(!f) return log("اختر ملفاً أولاً.");
         
+        // Restore Backup
         if(f.name.endsWith('.json')) {
-            // Restore Backup
             const reader = new FileReader();
             reader.onload = e => {
                 try {
                     db = JSON.parse(e.target.result);
                     saveDB();
-                    log(`Restored backup: ${db.length} records.`);
+                    log(`Restored ${db.length} records.`);
                     alert("تم استرجاع النسخة الاحتياطية!");
                     switchTab('dispense');
                 } catch(err) { alert("ملف معطوب"); }
             };
             reader.readAsText(f);
-        } else {
-            // Manual Excel
+        } 
+        // Import Excel
+        else {
             const reader = new FileReader();
             reader.onload = e => {
-                const data = new Uint8Array(e.target.result);
-                const workbook = XLSX.read(data, {type: 'array'});
-                processWorkbook(workbook);
-                alert("تم استيراد الإكسل اليدوي!");
-                switchTab('dispense');
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, {type: 'array'});
+                    processWorkbook(workbook);
+                    alert("تم استيراد الإكسل يدوياً!");
+                    switchTab('dispense');
+                } catch(err) { log("Excel Err: " + err); }
             };
             reader.readAsArrayBuffer(f);
         }
     }
 
-    // --- 🧠 CORE PARSING LOGIC (Shared) ---
+    // --- 🧠 PARSING LOGIC ---
     function processWorkbook(workbook) {
         const sheet = workbook.Sheets[workbook.SheetNames[0]];
         const rows = XLSX.utils.sheet_to_json(sheet, {header: 1});
@@ -246,7 +254,6 @@
 
         if(headerIdx === -1) return log("Header not found in Excel!");
 
-        // Parse
         let newDB = [], count = 0;
         for(let i=headerIdx+1; i<rows.length; i++) {
             const row = rows[i];
@@ -268,7 +275,7 @@
         
         db = newDB;
         saveDB();
-        log(`Processed ${count} records successfully.`);
+        log(`Processed ${count} records.`);
     }
 
     // --- 🔍 SEARCH & FILTER ---
@@ -362,7 +369,8 @@
         let tQ=0, tU=0;
         data.forEach(r => {
             tQ+=r.quota; tU+=r.used;
-            tbody.innerHTML += `<tr><td>${r.inst}</td><td>${r.item}</td><td>${r.quota}</td><td>${r.used}</td><td style="color:${(r.quota-r.used)<=0?'red':'green'}">${r.quota-r.used}</td></tr>`;
+            const rem = r.quota - r.used;
+            tbody.innerHTML += `<tr><td>${r.inst}</td><td>${r.item}</td><td>${r.quota}</td><td>${r.used}</td><td style="color:${rem<=0?'red':'green'}; font-weight:bold">${rem}</td></tr>`;
         });
         tbody.innerHTML += `<tr style="background:#333; color:#fff"><td>المجموع</td><td>--</td><td>${tQ}</td><td>${tU}</td><td>${tQ-tU}</td></tr>`;
     }
@@ -376,18 +384,18 @@
 
     // --- 💾 STORAGE ---
     function saveDB() {
-        localStorage.setItem('pharma_cloud_v15', JSON.stringify(db));
+        localStorage.setItem('pharma_manual_v16', JSON.stringify(db));
         uniqueItems = [...new Set(db.map(r => r.item))].sort();
     }
     function loadDB() {
-        const stored = localStorage.getItem('pharma_cloud_v15');
+        const stored = localStorage.getItem('pharma_manual_v16');
         if(stored) {
             db = JSON.parse(stored);
             uniqueItems = [...new Set(db.map(r => r.item))].sort();
         }
     }
     function clearSystem() {
-        if(confirm("حذف الكل؟")) { localStorage.removeItem('pharma_cloud_v15'); location.reload(); }
+        if(confirm("تحذير: سيتم حذف جميع البيانات!")) { localStorage.removeItem('pharma_manual_v16'); location.reload(); }
     }
 </script>
 
